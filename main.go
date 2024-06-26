@@ -1,53 +1,39 @@
-package main 
+package main
 
 import (
-    "database/sql"
-    "fmt"
+    "AsnGenerator-Backend/db"
+    "AsnGenerator-Backend/handlers"
     "log"
     "net/http"
     "os"
-
-    _ "github.com/mattn/go-sqlite3"
 )
 
-var db *sql.DB
-
-
 func main() {
-    // Open the database
-    var err error
-    db, err = sql.Open("sqlite3", "./inventory.db")
-    if err != nil {
-        log.Fatal(err)
-    }
-    defer db.Close()
-
-    // Create tables
-    err = createTables()
-    if err != nil {
-        log.Fatal(err)
+    dbURL := os.Getenv("DATABASE_URL")
+    if dbURL == "" {
+        log.Fatal("DATABASE_URL environment variable is required")
     }
 
-    // Set up HTTP routes
-    http.HandleFunc("/api/login", loginHandler)
-    http.HandleFunc("/api/register", registerHandler)
-    http.HandleFunc("/api/importBadger", importBadgerHandler)
-    http.HandleFunc("/api/importPO", importPOHandler)
-    http.HandleFunc("/api/queryBarcode", queryBarcodeHandler)
-    http.HandleFunc("/api/exportAsn", exportAsnHandler)
-    http.HandleFunc("/api/resetTables", resetTablesHandler)
+    log.Println("Raw DATABASE_URL:", dbURL)
 
-    // Start the server
-    fmt.Println("Starting server on :8080...")
+    // Initialize database connection
+    db.InitDB(dbURL)
+    db.CreateSchema()
+
+    // Register handlers
+    http.HandleFunc("/api/importBadger", handlers.ImportBadgerHandler)
+    http.HandleFunc("/api/importPO", handlers.ImportPOHandler)
+    http.HandleFunc("/api/queryBarcode", handlers.BarcodeHandler)
+    http.HandleFunc("/api/exportASN", handlers.ExportASNHandler)
+    // http.HandleFunc("/api/addShipmentID", handlers.AddShipmentIDHandler)
+    // http.HandleFunc("/api/viewPO", handlers.ViewPOHandler)
+    // http.HandleFunc("/api/resetTables", handlers.ResetTablesHandler)
+
+    log.Println("Starting server on :8080...")
     log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
-func createTables() error {
-    schema, err := os.ReadFile("schema.sql")
-    if err != nil {
-        return err
-    }
 
-    _, err = db.Exec(string(schema))
-    return err
-}
+// func rootHandler(w http.ResponseWriter, r *http.Request) {
+//     fmt.Fprintln(w, "Welcome to the Inventory App")
+// }
