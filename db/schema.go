@@ -59,6 +59,13 @@ func CreateSchema() {
         FOREIGN KEY (Item_Code) REFERENCES Badger(M3_Sku),
         FOREIGN KEY (ShipmentID) REFERENCES ShipmentID(ShipmentID)
     );
+
+    CREATE TABLE IF NOT EXISTS Users (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    role VARCHAR(20) NOT NULL
+    );
     `
 	_, err := DB.Exec(schema)
 	if err != nil {

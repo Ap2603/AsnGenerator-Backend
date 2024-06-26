@@ -2,18 +2,11 @@ package handlers
 
 import (
 	"AsnGenerator-Backend/db"
+	"AsnGenerator-Backend/structs"
 	"encoding/json"
 	"log"
 	"net/http"
 )
-
-
-type BarcodeRequest struct {
-	ShipmentID string `json:"shipment_id"`
-	PONumber   string `json:"po_number"`
-	GTIN       string `json:"gtin"`
-	SSCC       string `json:"sscc"`
-}
 
 func BarcodeHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -21,7 +14,7 @@ func BarcodeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req BarcodeRequest
+	var req structs.BarcodeRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		log.Println("Error decoding request:", err)

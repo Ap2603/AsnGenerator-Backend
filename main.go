@@ -1,11 +1,11 @@
 package main
 
 import (
-    "AsnGenerator-Backend/db"
-    "AsnGenerator-Backend/handlers"
-    "log"
-    "net/http"
-    "os"
+	"AsnGenerator-Backend/db"
+	"AsnGenerator-Backend/handlers"
+	"log"
+	"net/http"
+	"os"
 )
 
 func main() {
@@ -20,11 +20,16 @@ func main() {
     db.InitDB(dbURL)
     db.CreateSchema()
 
+
     // Register handlers
-    http.HandleFunc("/api/importBadger", handlers.ImportBadgerHandler)
-    http.HandleFunc("/api/importPO", handlers.ImportPOHandler)
-    http.HandleFunc("/api/queryBarcode", handlers.BarcodeHandler)
-    http.HandleFunc("/api/exportASN", handlers.ExportASNHandler)
+    http.HandleFunc("/api/register", handlers.AuthMiddleware(handlers.AdminMiddleware(handlers.RegisterHandler)))
+    http.HandleFunc("/api/login", handlers.LoginHandler)
+
+    http.HandleFunc("/api/importBadger", handlers.AuthMiddleware(handlers.AdminMiddleware(handlers.ImportBadgerHandler)))
+    http.HandleFunc("/api/importPO", handlers.AuthMiddleware(handlers.AdminMiddleware(handlers.ImportPOHandler)))
+    http.HandleFunc("/api/exportASN", handlers.AuthMiddleware(handlers.AdminMiddleware(handlers.ExportASNHandler)))
+    http.HandleFunc("/api/queryBarcode", handlers.AuthMiddleware(handlers.BarcodeHandler))
+    http.HandleFunc("/api/getShipmentIDs", handlers.AuthMiddleware(handlers.GetShipmentIDsHandler))
     // http.HandleFunc("/api/addShipmentID", handlers.AddShipmentIDHandler)
     // http.HandleFunc("/api/viewPO", handlers.ViewPOHandler)
     // http.HandleFunc("/api/resetTables", handlers.ResetTablesHandler)
@@ -33,7 +38,18 @@ func main() {
     log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
+// func insertAdminUser() {
+//     username := "admin"
+//     password := "Fivestar@2755!" // Change this to the desired admin password
+//     hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+//     if err != nil {
+//         log.Fatalf("Error generating password hash: %v", err)
+//     }
 
-// func rootHandler(w http.ResponseWriter, r *http.Request) {
-//     fmt.Fprintln(w, "Welcome to the Inventory App")
+//     _, err = db.GetDB().Exec("INSERT INTO Users (username, password, role) VALUES ($1, $2, $3)", username, hashedPassword, "admin")
+//     if err != nil {
+//         log.Printf("Error inserting admin user: %v", err)
+//     } else {
+//         log.Println("Admin user inserted successfully")
+//     }
 // }
