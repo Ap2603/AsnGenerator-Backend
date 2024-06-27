@@ -1,25 +1,25 @@
 package handlers
 
 import (
-	"AsnGenerator-Backend/db"
-	"encoding/json"
-	"fmt"
-	"io"
-	"log"
-	"net/http"
-	"net/smtp"
-	"os"
-	"path/filepath"
-	"regexp"
-	"strconv"
-	"strings"
+    "AsnGenerator-Backend/db"
+    "encoding/json"
+    "fmt"
+    "io"
+    "log"
+    "net/http"
+    "net/smtp"
+    "os"
+    "path/filepath"
+    "regexp"
+    "strconv"
+    "strings"
 
-	"github.com/xuri/excelize/v2"
+    "github.com/xuri/excelize/v2"
 )
 
 func sendEmail(poNumber string, skippedLineNumber int, existingLineNumber int, emailAddresses []string) error {
     from := "apparelsfivestar@gmail.com"
-    password := "abhd urol pvol cjlw"
+    password := "zhzu dylj lkod vymu"
 
     // Set up authentication information.
     auth := smtp.PlainAuth("", from, password, "smtp.gmail.com")

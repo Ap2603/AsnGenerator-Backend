@@ -30,6 +30,8 @@ func main() {
     http.HandleFunc("/api/exportASN", handlers.AuthMiddleware(handlers.AdminMiddleware(handlers.ExportASNHandler)))
     http.HandleFunc("/api/queryBarcode", handlers.AuthMiddleware(handlers.BarcodeHandler))
     http.HandleFunc("/api/getShipmentIDs", handlers.AuthMiddleware(handlers.GetShipmentIDsHandler))
+    http.HandleFunc("/api/getPONumbers", handlers.AuthMiddleware(handlers.GetPONumbers))
+    http.HandleFunc("/api/viewPO", handlers.AuthMiddleware(handlers.AdminMiddleware(handlers.ViewPOHandler)))
     // http.HandleFunc("/api/addShipmentID", handlers.AddShipmentIDHandler)
     // http.HandleFunc("/api/viewPO", handlers.ViewPOHandler)
     // http.HandleFunc("/api/resetTables", handlers.ResetTablesHandler)

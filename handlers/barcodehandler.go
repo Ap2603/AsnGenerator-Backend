@@ -10,7 +10,9 @@ import (
 
 func BarcodeHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		response := map[string]string{"message": "Method not allowed"}
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		json.NewEncoder(w).Encode(response)
 		return
 	}
 
@@ -18,18 +20,27 @@ func BarcodeHandler(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		log.Println("Error decoding request:", err)
-		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		response := map[string]string{"message": "Invalid request payload"}
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(response)
 		return
 	}
 
+	// Log the received PO Number and Shipment ID
+	log.Printf("Received PO Number: %s", req.PONumber)
+	log.Printf("Received Shipment ID: %s", req.ShipmentID)
+
 	// Validate barcodes
 	if len(req.GTIN) != 20 || len(req.SSCC) != 20 {
-		http.Error(w, "Both GTIN and SSCC must be 20 characters long", http.StatusBadRequest)
+		response := map[string]string{"message": "Both GTIN and SSCC must be 20 characters long"}
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(response)
 		return
 	}
 
 	// Filter GTIN
 	filteredGTIN := req.GTIN[2 : len(req.GTIN)-4]
+	log.Printf("Filtered GTIN: %v", filteredGTIN)
 
 	// Query Badger table
 	var itemCode string
@@ -41,9 +52,13 @@ func BarcodeHandler(w http.ResponseWriter, r *http.Request) {
 	`, filteredGTIN).Scan(&itemCode, &casePackSize)
 	if err != nil {
 		log.Println("Error querying Badger table:", err)
-		http.Error(w, "Error querying Badger table", http.StatusInternalServerError)
+		response := map[string]string{"message": "Error querying Badger table"}
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(response)
 		return
 	}
+
+	log.Printf("Item Code: %v", itemCode)
 
 	// Query PO tables and get Line number and current pcs
 	var lineNumber int
@@ -55,13 +70,17 @@ func BarcodeHandler(w http.ResponseWriter, r *http.Request) {
 	`, req.PONumber, itemCode).Scan(&lineNumber, &currentPcs)
 	if err != nil {
 		log.Println("Error querying ItemsOrdered table:", err)
-		http.Error(w, "Error querying ItemsOrdered table", http.StatusInternalServerError)
+		response := map[string]string{"message": "Error querying ItemsOrdered table"}
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(response)
 		return
 	}
 
 	// Check if subtracting casePackSize will result in negative pcs
 	if currentPcs < casePackSize {
-		http.Error(w, "Not enough PCS in ItemsOrdered to fulfill this ASN entry", http.StatusBadRequest)
+		response := map[string]string{"message": "Not enough PCS in ItemsOrdered to fulfill this ASN entry"}
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(response)
 		return
 	}
 
@@ -72,7 +91,9 @@ func BarcodeHandler(w http.ResponseWriter, r *http.Request) {
 	tx, err := db.GetDB().Begin()
 	if err != nil {
 		log.Println("Error beginning transaction:", err)
-		http.Error(w, "Error beginning transaction", http.StatusInternalServerError)
+		response := map[string]string{"message": "Error beginning transaction"}
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(response)
 		return
 	}
 	defer tx.Rollback()
@@ -84,7 +105,9 @@ func BarcodeHandler(w http.ResponseWriter, r *http.Request) {
 	`, filteredSSCC, itemCode, casePackSize, req.PONumber, lineNumber, req.ShipmentID)
 	if err != nil {
 		log.Println("Error inserting into ASN table:", err)
-		http.Error(w, "Error inserting into ASN table", http.StatusInternalServerError)
+		response := map[string]string{"message": "Error inserting into ASN table"}
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(response)
 		return
 	}
 
@@ -96,14 +119,18 @@ func BarcodeHandler(w http.ResponseWriter, r *http.Request) {
 	`, casePackSize, req.PONumber, itemCode)
 	if err != nil {
 		log.Println("Error updating ItemsOrdered table:", err)
-		http.Error(w, "Error updating ItemsOrdered table", http.StatusInternalServerError)
+		response := map[string]string{"message": "Error updating ItemsOrdered table"}
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(response)
 		return
 	}
 
 	err = tx.Commit()
 	if err != nil {
 		log.Println("Error committing transaction:", err)
-		http.Error(w, "Error committing transaction", http.StatusInternalServerError)
+		response := map[string]string{"message": "Error committing transaction"}
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(response)
 		return
 	}
 

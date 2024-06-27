@@ -4,6 +4,7 @@ import (
 	"AsnGenerator-Backend/db"
 	"AsnGenerator-Backend/structs"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -49,26 +50,33 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
     var creds structs.Credentials
     err := json.NewDecoder(r.Body).Decode(&creds)
     if err != nil {
-        http.Error(w, `{"error": "Invalid request payload"}`, http.StatusBadRequest)
+        http.Error(w, "Invalid request payload", http.StatusBadRequest)
         return
     }
 
-    var storedPassword, role string
-    err = db.GetDB().QueryRow("SELECT password, role FROM Users WHERE username = $1", creds.Username).Scan(&storedPassword, &role)
+    var storedCreds structs.Credentials
+    var role string
+
+    err = db.GetDB().QueryRow("SELECT username, password, role FROM users WHERE username = $1", creds.Username).Scan(&storedCreds.Username, &storedCreds.Password, &role)
     if err != nil {
-        http.Error(w, `{"error": "Invalid username or password"}`, http.StatusUnauthorized)
+        if err == sql.ErrNoRows {
+            http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+            return
+        }
+        http.Error(w, "Internal server error", http.StatusInternalServerError)
         return
     }
 
-    if err := bcrypt.CompareHashAndPassword([]byte(storedPassword), []byte(creds.Password)); err != nil {
-        http.Error(w, `{"error": "Invalid username or password"}`, http.StatusUnauthorized)
+    err = bcrypt.CompareHashAndPassword([]byte(storedCreds.Password), []byte(creds.Password))
+    if err != nil {
+        http.Error(w, "Invalid credentials", http.StatusUnauthorized)
         return
     }
 
     expirationTime := time.Now().Add(24 * time.Hour)
     claims := &structs.Claims{
         Username: creds.Username,
-        Role:     role,
+		Role: role,
         StandardClaims: jwt.StandardClaims{
             ExpiresAt: expirationTime.Unix(),
         },
@@ -77,14 +85,24 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
     token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
     tokenString, err := token.SignedString(jwtKey)
     if err != nil {
-        http.Error(w, `{"error": "Error generating token"}`, http.StatusInternalServerError)
+        http.Error(w, "Internal server error", http.StatusInternalServerError)
         return
     }
 
-    w.Header().Set("Content-Type", "application/json")
-    json.NewEncoder(w).Encode(map[string]string{"token": tokenString})
-}
+    http.SetCookie(w, &http.Cookie{
+        Name:    "token",
+        Value:   tokenString,
+        Expires: expirationTime,
+    })
 
+    response := map[string]interface{}{
+        "token": tokenString,
+        "role":  role,
+    }
+
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(response)
+}
 
 func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
     return func(w http.ResponseWriter, r *http.Request) {

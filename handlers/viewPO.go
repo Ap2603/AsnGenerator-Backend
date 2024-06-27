@@ -1,0 +1,73 @@
+package handlers
+
+import (
+	"AsnGenerator-Backend/db"
+	"encoding/json"
+	"log"
+	"net/http"
+)
+
+func ViewPOHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	poNumber := r.URL.Query().Get("poNumber")
+	if poNumber == "" {
+		http.Error(w, "Missing PO number", http.StatusBadRequest)
+		return
+	}
+
+	rows, err := db.GetDB().Query(`
+		SELECT Line_Number, Item_Number, Style, Colour_Size, Cost, Pcs, Total, Ex_Fac_Date
+		FROM ItemsOrdered
+		WHERE PO_Number = $1
+		ORDER BY Line_Number ASC
+	`, poNumber)
+	if err != nil {
+		log.Println("Error querying ItemsOrdered table:", err)
+		http.Error(w, "Error querying ItemsOrdered table", http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	var results []struct {
+		LineNumber  int    `json:"line_number"`
+		ItemNumber  string `json:"item_number"`
+		Style       string `json:"style"`
+		ColourSize  string `json:"colour_size"`
+		Cost        string `json:"cost"`
+		Pcs         int    `json:"pcs"`
+		Total       string `json:"total"`
+		ExFacDate   string `json:"ex_fac_date"`
+	}
+
+	for rows.Next() {
+		var entry struct {
+			LineNumber  int    `json:"line_number"`
+			ItemNumber  string `json:"item_number"`
+			Style       string `json:"style"`
+			ColourSize  string `json:"colour_size"`
+			Cost        string `json:"cost"`
+			Pcs         int    `json:"pcs"`
+			Total       string `json:"total"`
+			ExFacDate   string `json:"ex_fac_date"`
+		}
+		if err := rows.Scan(&entry.LineNumber, &entry.ItemNumber, &entry.Style, &entry.ColourSize, &entry.Cost, &entry.Pcs, &entry.Total, &entry.ExFacDate); err != nil {
+			log.Println("Error scanning row:", err)
+			http.Error(w, "Error scanning row", http.StatusInternalServerError)
+			return
+		}
+		results = append(results, entry)
+	}
+
+	if err := rows.Err(); err != nil {
+		log.Println("Error iterating rows:", err)
+		http.Error(w, "Error iterating rows", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(results)
+}
