@@ -9,35 +9,38 @@ import (
 )
 
 func main() {
-    dbURL := os.Getenv("DATABASE_URL")
-    if dbURL == "" {
-        log.Fatal("DATABASE_URL environment variable is required")
-    }
+	dbURL := os.Getenv("DATABASE_URL")
+	if dbURL == "" {
+		log.Fatal("DATABASE_URL environment variable is required")
+	}
 
-    log.Println("Raw DATABASE_URL:", dbURL)
+	log.Println("Raw DATABASE_URL:", dbURL)
 
-    // Initialize database connection
-    db.InitDB(dbURL)
-    db.CreateSchema()
+	// Initialize database connection
+	db.InitDB(dbURL)
+	db.CreateSchema()
+
+	// Register handlers
+	http.HandleFunc("/api/register", handlers.AuthMiddleware(handlers.AdminMiddleware(handlers.RegisterHandler)))
+	http.HandleFunc("/api/login", handlers.LoginHandler)
+
+	http.HandleFunc("/api/importBadger", handlers.AuthMiddleware(handlers.AdminMiddleware(handlers.ImportBadgerHandler)))
+	http.HandleFunc("/api/importPO", handlers.AuthMiddleware(handlers.AdminMiddleware(handlers.ImportPOHandler)))
+	http.HandleFunc("/api/exportASN", handlers.AuthMiddleware(handlers.AdminMiddleware(handlers.ExportASNHandler)))
+	http.HandleFunc("/api/queryBarcode", handlers.AuthMiddleware(handlers.BarcodeHandler))
+	http.HandleFunc("/api/getShipmentIDs", handlers.AuthMiddleware(handlers.GetShipmentIDsHandler))
+	http.HandleFunc("/api/getPONumbers", handlers.AuthMiddleware(handlers.GetPONumbers))
+	http.HandleFunc("/api/viewPO", handlers.AuthMiddleware(handlers.AdminMiddleware(handlers.ViewPOHandler)))
+	http.HandleFunc("/api/addShipmentID", handlers.AuthMiddleware(handlers.AdminMiddleware(handlers.AddShipmentIDHandler)))
+    http.HandleFunc("/api/viewASNStatus", handlers.AuthMiddleware(handlers.AdminMiddleware(handlers.ViewASNHandler)))
 
 
-    // Register handlers
-    http.HandleFunc("/api/register", handlers.AuthMiddleware(handlers.AdminMiddleware(handlers.RegisterHandler)))
-    http.HandleFunc("/api/login", handlers.LoginHandler)
+	// http.HandleFunc("/api/addShipmentID", handlers.AddShipmentIDHandler)
+	// http.HandleFunc("/api/viewPO", handlers.ViewPOHandler)
+	// http.HandleFunc("/api/resetTables", handlers.ResetTablesHandler)
 
-    http.HandleFunc("/api/importBadger", handlers.AuthMiddleware(handlers.AdminMiddleware(handlers.ImportBadgerHandler)))
-    http.HandleFunc("/api/importPO", handlers.AuthMiddleware(handlers.AdminMiddleware(handlers.ImportPOHandler)))
-    http.HandleFunc("/api/exportASN", handlers.AuthMiddleware(handlers.AdminMiddleware(handlers.ExportASNHandler)))
-    http.HandleFunc("/api/queryBarcode", handlers.AuthMiddleware(handlers.BarcodeHandler))
-    http.HandleFunc("/api/getShipmentIDs", handlers.AuthMiddleware(handlers.GetShipmentIDsHandler))
-    http.HandleFunc("/api/getPONumbers", handlers.AuthMiddleware(handlers.GetPONumbers))
-    http.HandleFunc("/api/viewPO", handlers.AuthMiddleware(handlers.AdminMiddleware(handlers.ViewPOHandler)))
-    // http.HandleFunc("/api/addShipmentID", handlers.AddShipmentIDHandler)
-    // http.HandleFunc("/api/viewPO", handlers.ViewPOHandler)
-    // http.HandleFunc("/api/resetTables", handlers.ResetTablesHandler)
-
-    log.Println("Starting server on :8080...")
-    log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Println("Starting server on :8080...")
+	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
 // func insertAdminUser() {

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"AsnGenerator-Backend/db"
+	"AsnGenerator-Backend/structs"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -32,28 +33,12 @@ func ViewPOHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer rows.Close()
 
-	var results []struct {
-		LineNumber  int    `json:"line_number"`
-		ItemNumber  string `json:"item_number"`
-		Style       string `json:"style"`
-		ColourSize  string `json:"colour_size"`
-		Cost        string `json:"cost"`
-		Pcs         int    `json:"pcs"`
-		Total       string `json:"total"`
-		ExFacDate   string `json:"ex_fac_date"`
-	}
+
+	type POresult []structs.POresults
+	var results POresult
 
 	for rows.Next() {
-		var entry struct {
-			LineNumber  int    `json:"line_number"`
-			ItemNumber  string `json:"item_number"`
-			Style       string `json:"style"`
-			ColourSize  string `json:"colour_size"`
-			Cost        string `json:"cost"`
-			Pcs         int    `json:"pcs"`
-			Total       string `json:"total"`
-			ExFacDate   string `json:"ex_fac_date"`
-		}
+		var entry structs.POresults
 		if err := rows.Scan(&entry.LineNumber, &entry.ItemNumber, &entry.Style, &entry.ColourSize, &entry.Cost, &entry.Pcs, &entry.Total, &entry.ExFacDate); err != nil {
 			log.Println("Error scanning row:", err)
 			http.Error(w, "Error scanning row", http.StatusInternalServerError)

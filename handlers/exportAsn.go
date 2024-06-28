@@ -28,6 +28,7 @@ func ExportASNHandler(w http.ResponseWriter, r *http.Request) {
 		SELECT SSCC, Item_Code, Case_Pack_Size, PO_Number, Line_Number
 		FROM ASN
 		WHERE ShipmentID = $1
+		ORDER BY Item_Code ASC
 	`, shipmentID)
 	if err != nil {
 		log.Println("Error querying ASN data:", err)
