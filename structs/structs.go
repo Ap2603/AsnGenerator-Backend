@@ -7,6 +7,8 @@ type BarcodeRequest struct {
 	PONumber   string `json:"po_number"`
 	GTIN       string `json:"gtin"`
 	SSCC       string `json:"sscc"`
+	Role       string `json:"role"`
+	Override   bool   `json:"override"`
 }
 
 type Credentials struct {
