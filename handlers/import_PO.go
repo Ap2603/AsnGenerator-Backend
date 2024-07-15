@@ -19,7 +19,7 @@ import (
 
 func sendEmail(poNumber string, skippedLineNumber int, existingLineNumber int, emailAddresses []string) error {
     from := "apparelsfivestar@gmail.com"
-    password := "zhzu dylj lkod vymu"
+    password := "najd ltwq vzkb cjea"
 
     // Set up authentication information.
     auth := smtp.PlainAuth("", from, password, "smtp.gmail.com")
@@ -46,7 +46,7 @@ func ImportPOHandler(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    // Parse the multipart form
+    log.Println("Starting to parse form")
     err := r.ParseMultipartForm(100 << 20) // 100 MB max memory
     if err != nil {
         log.Println("Error parsing form:", err)
@@ -54,15 +54,24 @@ func ImportPOHandler(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    emailAddresses := []string{"aamir.parekh36@gmail.com", "asif@fivestarapparels.com.pk"}
+    log.Println("Parsing form successful")
+
+    emailAddresses := []string{"aslam.asif@fivestarapparels.com.pk", "asif@fivestarapparels.com.pk", "accounts@fivestarapparels.com.pk"}
+
+    // Log the keys in the MultipartForm to verify files are being uploaded correctly
+    for key := range r.MultipartForm.File {
+        log.Printf("Key in MultipartForm: %s\n", key)
+    }
 
     files := r.MultipartForm.File["file"]
     if len(files) == 0 {
+        log.Println("No files uploaded")
         http.Error(w, "No files uploaded", http.StatusBadRequest)
         return
     }
 
     for _, fileHeader := range files {
+        log.Printf("Processing file: %s\n", fileHeader.Filename)
         file, err := fileHeader.Open()
         if err != nil {
             log.Println("Error retrieving file:", err)
@@ -71,8 +80,9 @@ func ImportPOHandler(w http.ResponseWriter, r *http.Request) {
         }
         defer file.Close()
 
-        // Save the file locally
-        tempFile, err := os.Create(filepath.Join(os.TempDir(), fileHeader.Filename))
+        tempFilePath := filepath.Join(os.TempDir(), fileHeader.Filename)
+        log.Printf("Saving file to: %s\n", tempFilePath)
+        tempFile, err := os.Create(tempFilePath)
         if err != nil {
             log.Println("Error creating temp file:", err)
             http.Error(w, "Error saving file", http.StatusInternalServerError)
@@ -87,14 +97,18 @@ func ImportPOHandler(w http.ResponseWriter, r *http.Request) {
             return
         }
 
+        log.Printf("File saved: %s\n", tempFilePath)
+
         // Open the Excel file
-        f, err := excelize.OpenFile(tempFile.Name())
+        f, err := excelize.OpenFile(tempFilePath)
         if err != nil {
             log.Println("Error opening Excel file:", err)
             http.Error(w, "Error opening Excel file", http.StatusInternalServerError)
             return
         }
         defer f.Close()
+
+        log.Println("Excel file opened successfully")
 
         for _, sheetName := range f.GetSheetMap() {
             if strings.ToLower(sheetName) == "summary" {
@@ -211,6 +225,7 @@ func ImportPOHandler(w http.ResponseWriter, r *http.Request) {
     w.WriteHeader(http.StatusOK)
     json.NewEncoder(w).Encode(map[string]string{"message": "Data imported successfully"})
 }
+
 
 func updatePCS(pcs int, total string, poNumber, itemNumber string, emailAddresses []string, lineNumber int, lastInsertedLine int) error {
     tx, err := db.GetDB().Begin()

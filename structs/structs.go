@@ -45,3 +45,10 @@ type ASNResults struct {
 	PONumber     string `json:"po_number"`
 	LineNumber   int    `json:"line_number"`
 }
+
+type EntryRemoval struct {
+	SSCC      string `json:"sscc"`
+	PONumber  string `json:"po_number"`
+	ItemCode  string `json:"item_code"`
+	LineNumber int    `json:"line_number"`
+}

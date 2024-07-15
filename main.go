@@ -24,7 +24,7 @@ func main() {
 	http.HandleFunc("/api/register", handlers.AuthMiddleware(handlers.AdminMiddleware(handlers.RegisterHandler)))
 	http.HandleFunc("/api/login", handlers.LoginHandler)
 
-	http.HandleFunc("/api/importBadger", handlers.AuthMiddleware(handlers.AdminMiddleware(handlers.ImportBadgerHandler)))
+	http.HandleFunc("/api/importBadger", handlers.ImportBadgerHandler)
 	http.HandleFunc("/api/importPO", handlers.AuthMiddleware(handlers.AdminMiddleware(handlers.ImportPOHandler)))
 	http.HandleFunc("/api/exportASN", handlers.AuthMiddleware(handlers.AdminMiddleware(handlers.ExportASNHandler)))
 	http.HandleFunc("/api/queryBarcode", handlers.AuthMiddleware(handlers.BarcodeHandler))
@@ -33,14 +33,11 @@ func main() {
 	http.HandleFunc("/api/viewPO", handlers.AuthMiddleware(handlers.AdminMiddleware(handlers.ViewPOHandler)))
 	http.HandleFunc("/api/addShipmentID", handlers.AuthMiddleware(handlers.AdminMiddleware(handlers.AddShipmentIDHandler)))
     http.HandleFunc("/api/viewASNStatus", handlers.AuthMiddleware(handlers.AdminMiddleware(handlers.ViewASNHandler)))
+    http.HandleFunc("/api/removeASNEntry", handlers.AuthMiddleware(handlers.AdminMiddleware(handlers.RemoveASNEntryHandler)))
 
 
-	// http.HandleFunc("/api/addShipmentID", handlers.AddShipmentIDHandler)
-	// http.HandleFunc("/api/viewPO", handlers.ViewPOHandler)
-	// http.HandleFunc("/api/resetTables", handlers.ResetTablesHandler)
-
-	log.Println("Starting server on :8080...")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Println("Starting server on :7000...")
+	log.Fatal(http.ListenAndServe(":7000", nil))
 }
 
 // func insertAdminUser() {
