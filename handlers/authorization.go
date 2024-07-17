@@ -23,27 +23,28 @@ type contextKey string
 const claimsKey contextKey = "claims"
 
 func RegisterHandler(w http.ResponseWriter, r *http.Request) {
-    var creds structs.Credentials
-    err := json.NewDecoder(r.Body).Decode(&creds)
-    if err != nil {
-        http.Error(w, "Invalid request payload", http.StatusBadRequest)
-        return
-    }
+	var creds structs.Credentials
+	err := json.NewDecoder(r.Body).Decode(&creds)
+	if err != nil {
+		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		return
+	}
 
-    hashedPassword, err := bcrypt.GenerateFromPassword([]byte(creds.Password), bcrypt.DefaultCost)
-    if err != nil {
-        http.Error(w, "Error creating user", http.StatusInternalServerError)
-        return
-    }
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(creds.Password), bcrypt.DefaultCost)
+	if err != nil {
+		http.Error(w, "Error creating user", http.StatusInternalServerError)
+		return
+	}
 
-    _, err = db.GetDB().Exec("INSERT INTO Users (username, password, role) VALUES ($1, $2, $3)", creds.Username, hashedPassword, "user")
-    if err != nil {
-        log.Println("Error inserting user:", err)
-        http.Error(w, "Error creating user", http.StatusInternalServerError)
-        return
-    }
+	_, err = db.GetDB().Exec("INSERT INTO Users (username, password, role) VALUES ($1, $2, $3)", creds.Username, hashedPassword, "user")
+	if err != nil {
+		log.Println("Error inserting user:", err)
+		http.Error(w, "Error creating user", http.StatusInternalServerError)
+		return
+	}
 
-    w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(map[string]string{"message": "User registered successfully"})
 }
 
 func LoginHandler(w http.ResponseWriter, r *http.Request) {

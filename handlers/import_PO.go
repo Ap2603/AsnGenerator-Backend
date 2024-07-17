@@ -143,7 +143,6 @@ func ImportPOHandler(w http.ResponseWriter, r *http.Request) {
                 return
             }
 
-            var lastInsertedLine int
             duplicates := make([][]interface{}, 0)
 
             // Insert data into ItemsOrdered table
@@ -189,7 +188,7 @@ func ImportPOHandler(w http.ResponseWriter, r *http.Request) {
                 if err != nil {
                     if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
                         // Add to duplicates list
-                        duplicates = append(duplicates, []interface{}{pcs, total, poNumber, itemNumber, lineNumber, lastInsertedLine})
+                        duplicates = append(duplicates, []interface{}{pcs, total, poNumber, itemNumber, lineNumber})
                         tx.Rollback()
                         continue
                     }
@@ -199,8 +198,6 @@ func ImportPOHandler(w http.ResponseWriter, r *http.Request) {
                     http.Error(w, "Error inserting into ItemsOrdered table", http.StatusInternalServerError)
                     return
                 }
-
-                lastInsertedLine = lineNumber
 
                 err = tx.Commit()
                 if err != nil {
@@ -212,11 +209,15 @@ func ImportPOHandler(w http.ResponseWriter, r *http.Request) {
 
             // Handle duplicates separately
             for _, duplicate := range duplicates {
-                pcs, total, poNumber, itemNumber, lineNumber, lastInsertedLine := duplicate[0].(int), duplicate[1].(string), duplicate[2].(string), duplicate[3].(string), duplicate[4].(int), duplicate[5].(int)
-                updateErr := updatePCS(pcs, total, poNumber, itemNumber, emailAddresses, lineNumber, lastInsertedLine)
+                pcs, total, poNumber, itemNumber, lineNumber := duplicate[0].(int), duplicate[1].(string), duplicate[2].(string), duplicate[3].(string), duplicate[4].(int)
+                originalLineNumber, updateErr := updatePCS(pcs, total, poNumber, itemNumber)
                 if updateErr != nil {
                     http.Error(w, "Error updating PCS", http.StatusInternalServerError)
                     return
+                }
+                emailErr := sendEmail(poNumber, lineNumber, originalLineNumber, emailAddresses)
+                if emailErr != nil {
+                    log.Printf("Error sending email for PO_Number: %s, Item_Number: %s, Error: %v\n", poNumber, itemNumber, emailErr)
                 }
             }
         }
@@ -226,12 +227,11 @@ func ImportPOHandler(w http.ResponseWriter, r *http.Request) {
     json.NewEncoder(w).Encode(map[string]string{"message": "Data imported successfully"})
 }
 
-
-func updatePCS(pcs int, total string, poNumber, itemNumber string, emailAddresses []string, lineNumber int, lastInsertedLine int) error {
+func updatePCS(pcs int, total string, poNumber, itemNumber string) (int, error) {
     tx, err := db.GetDB().Begin()
     if err != nil {
         log.Println("Error beginning transaction for PCS update:", err)
-        return err
+        return 0, err
     }
     defer tx.Rollback()
 
@@ -243,26 +243,27 @@ func updatePCS(pcs int, total string, poNumber, itemNumber string, emailAddresse
     newTotal, err := strconv.ParseFloat(cleanedTotal, 64)
     if err != nil {
         log.Println("Error converting total to float:", err)
-        return err
+        return 0, err
     }
 
     // Get the existing total value
     row := tx.QueryRow(`
-        SELECT Total
+        SELECT Line_Number, Total
         FROM ItemsOrdered
         WHERE PO_Number = $1 AND Item_Number = $2
     `, poNumber, itemNumber)
     var existingTotal string
-    err = row.Scan(&existingTotal)
+    var originalLineNumber int
+    err = row.Scan(&originalLineNumber, &existingTotal)
     if err != nil {
         log.Println("Error retrieving existing total:", err)
-        return err
+        return 0, err
     }
 
     existingTotalFloat, err := strconv.ParseFloat(re.ReplaceAllString(existingTotal, ""), 64)
     if err != nil {
         log.Println("Error converting existing total to float:", err)
-        return err
+        return 0, err
     }
 
     // Calculate the new total
@@ -278,15 +279,8 @@ func updatePCS(pcs int, total string, poNumber, itemNumber string, emailAddresse
     `, pcs, formattedTotal, poNumber, itemNumber)
     if err != nil {
         log.Printf("Error updating PCS and Total for PO_Number: %s, Item_Number: %s, Add_Pcs: %d, New_Total: %s, Error: %v\n", poNumber, itemNumber, pcs, formattedTotal, err)
-        return err
+        return 0, err
     }
 
-    // Send email notification
-    emailErr := sendEmail(poNumber, lineNumber, lastInsertedLine, emailAddresses)
-    if emailErr != nil {
-        log.Printf("Error sending email for PO_Number: %s, Item_Number: %s: %v\n", poNumber, itemNumber, emailErr)
-        return emailErr
-    }
-
-    return tx.Commit()
+    return originalLineNumber, tx.Commit()
 }
