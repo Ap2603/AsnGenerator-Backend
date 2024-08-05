@@ -52,3 +52,15 @@ type EntryRemoval struct {
 	ItemCode  string `json:"item_code"`
 	LineNumber int    `json:"line_number"`
 }
+
+type POentries struct {
+	PONumber   string `json:"poNumber"`
+	LineNumber int    `json:"lineNumber"`
+	ItemNumber string `json:"itemNumber"`
+	Style      string `json:"style"`
+	ColourSize string `json:"colourSize"`
+	Cost       string `json:"cost"`
+	Pcs        int    `json:"pcs"`
+	Total      string `json:"total"`
+	ExFacDate  string `json:"exFacDate"`
+}

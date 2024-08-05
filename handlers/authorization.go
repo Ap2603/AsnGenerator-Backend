@@ -61,23 +61,26 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
     err = db.GetDB().QueryRow("SELECT username, password, role FROM users WHERE username = $1", creds.Username).Scan(&storedCreds.Username, &storedCreds.Password, &role)
     if err != nil {
         if err == sql.ErrNoRows {
-            http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+            // Username not found
+            http.Error(w, "Invalid username", http.StatusUnauthorized)
             return
         }
         http.Error(w, "Internal server error", http.StatusInternalServerError)
         return
     }
 
+    // If username exists, check password
     err = bcrypt.CompareHashAndPassword([]byte(storedCreds.Password), []byte(creds.Password))
     if err != nil {
-        http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+        // Incorrect password
+        http.Error(w, "Incorrect password", http.StatusUnauthorized)
         return
     }
 
     expirationTime := time.Now().Add(24 * time.Hour)
     claims := &structs.Claims{
         Username: creds.Username,
-		Role: role,
+        Role: role,
         StandardClaims: jwt.StandardClaims{
             ExpiresAt: expirationTime.Unix(),
         },
@@ -104,6 +107,8 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
     w.Header().Set("Content-Type", "application/json")
     json.NewEncoder(w).Encode(response)
 }
+
+
 
 func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
     return func(w http.ResponseWriter, r *http.Request) {

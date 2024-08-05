@@ -45,6 +45,23 @@ func BarcodeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	filteredSSCC := req.SSCC[2:]
+	log.Printf("Filtered SSCC: %v", filteredSSCC)
+
+	// Check if SSCC already exists in ASN table
+	var existingSSCC string
+	err = db.GetDB().QueryRow(`
+		SELECT SSCC
+		FROM ASN
+		WHERE SSCC = $1
+	`, filteredSSCC).Scan(&existingSSCC)
+	if err == nil {
+		response := map[string]string{"message": "SSCC already exists in ASN table"}
+		w.WriteHeader(http.StatusConflict)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
 	filteredGTIN := req.GTIN[2 : len(req.GTIN)-4]
 	log.Printf("Filtered GTIN: %v", filteredGTIN)
 
@@ -93,9 +110,6 @@ func BarcodeHandler(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(response)
 		return
 	}
-
-	filteredSSCC := req.SSCC[2:]
-	log.Printf("Filtered SSCC: %v", filteredSSCC)
 
 	tx, err := db.GetDB().Begin()
 	if err != nil {

@@ -34,6 +34,8 @@ func main() {
 	http.HandleFunc("/api/addShipmentID", handlers.AuthMiddleware(handlers.AdminMiddleware(handlers.AddShipmentIDHandler)))
     http.HandleFunc("/api/viewASNStatus", handlers.AuthMiddleware(handlers.AdminMiddleware(handlers.ViewASNHandler)))
     http.HandleFunc("/api/removeASNEntry", handlers.AuthMiddleware(handlers.AdminMiddleware(handlers.RemoveASNEntryHandler)))
+	http.HandleFunc("/api/exportPO", handlers.AuthMiddleware(handlers.AdminMiddleware(handlers.ExportPOHandler)))
+	http.HandleFunc("/api/addPOentries", handlers.AuthMiddleware(handlers.AdminMiddleware(handlers.AddPOentriesHandler)))
 
 
 	log.Println("Starting server on :7000...")

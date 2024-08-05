@@ -27,7 +27,6 @@ func ViewASNHandler(w http.ResponseWriter, r *http.Request) {
 		SELECT SSCC, Item_Code, Case_Pack_Size, PO_Number, Line_Number
 		FROM ASN
 		WHERE ShipmentID = $1
-		ORDER BY Line_Number ASC
 	`, shipmentId)
 	if err != nil {
 		log.Println("Error querying ASN table:", err)
